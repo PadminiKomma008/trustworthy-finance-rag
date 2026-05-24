@@ -8,6 +8,21 @@ function App() {
   const [sources, setSources] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const extractSection = (label) => {
+    const regex = new RegExp(`###\\s*${label}\\s*([\\s\\S]*?)(?=###|$)`, "i");
+    const match = answer.match(regex);
+    return match ? match[1].trim() : "Not available";
+  };
+
+  const cleanAnswer = () => {
+    return answer
+      .replace(/###\s*Key Drivers[\s\S]*?(?=###|$)/i, "")
+      .replace(/###\s*Sentiment[\s\S]*?(?=###|$)/i, "")
+      .replace(/###\s*Confidence[\s\S]*?(?=###|$)/i, "")
+      .replace(/###/g, "")
+      .trim();
+  };
+
   const handleAsk = async () => {
     setLoading(true);
     setAnswer("");
@@ -15,45 +30,65 @@ function App() {
 
     try {
       const data = await askQuestion(question);
-      setAnswer(data.answer);
+      setAnswer(data.answer || "");
       setSources(data.sources || []);
     } catch {
-      setAnswer("Backend error. Check FastAPI and Ollama are running.");
+      setAnswer("Error connecting to backend.");
     }
 
     setLoading(false);
   };
 
   return (
-    <div className="page">
-      <div className="card">
-        <h1>📊 Trustworthy Finance RAG</h1>
-        <p className="subtitle">Ask market questions with source-backed answers.</p>
+    <div className="app">
+      {/* Header */}
+      <h1 className="main-title">Finance AI Insights</h1>
 
+      {/* Question Block */}
+      <div className="question-box">
         <textarea
-          placeholder="Example: Why is Nvidia stock moving this week?"
+          placeholder="Ask your question..."
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
         />
 
         <button onClick={handleAsk} disabled={loading || !question}>
-          {loading ? "Analyzing..." : "Ask AI"}
+          {loading ? "Analyzing..." : "Ask"}
         </button>
+      </div>
 
-        {loading && <div className="loader">⏳ Retrieving news + generating answer...</div>}
-
-        <div className="section">
-          <h2>Answer</h2>
-          <pre>{answer}</pre>
+      {/* Cards Grid */}
+      <div className="card-grid">
+        {/* Answer */}
+        <div className="card">
+          <h3>Answer</h3>
+          <p>{loading ? "Loading..." : cleanAnswer()}</p>
         </div>
 
-        <div className="section">
-          <h2>Sources</h2>
-          {sources.map((source, index) => (
-            <a key={index} href={source.url} target="_blank">
-              🔗 {source.title}
-            </a>
-          ))}
+        {/* Sources */}
+        <div className="card">
+          <h3>Sources</h3>
+          {sources.length === 0 ? (
+            <p>No sources</p>
+          ) : (
+            sources.map((s, i) => (
+              <a key={i} href={s.url} target="_blank" rel="noreferrer">
+                {s.title}
+              </a>
+            ))
+          )}
+        </div>
+
+        {/* Sentiment */}
+        <div className="card">
+          <h3>Sentiment</h3>
+          <p>{extractSection("Sentiment")}</p>
+        </div>
+
+        {/* Confidence */}
+        <div className="card">
+          <h3>Confidence</h3>
+          <p>{extractSection("Confidence")}</p>
         </div>
       </div>
     </div>
